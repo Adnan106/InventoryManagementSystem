@@ -1,0 +1,13 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  endpoints:
+    - path: /actuator/prometheus
+      port: http
+  selector:
+    matchLabels:
+      app: backend

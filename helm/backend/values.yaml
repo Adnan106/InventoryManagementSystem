@@ -1,0 +1,21 @@
+# Default values for backend-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+image:
+  repository: faizanahmad055/backend
+  tag: 0.0.1
+
+dbUsername: "sa"
+dbPassword: "password"
+dbName: "testdb"
+
+ingress:
+  host: "your-backend-domain.com"
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
