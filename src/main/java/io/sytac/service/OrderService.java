@@ -72,13 +72,58 @@ public class OrderService {
     }
 
 
-    public Optional<Order> getOrderById(Long id) {
-        return orderRepository.findById(id);
+    @Transactional
+    public void deleteOrderItemQuantity(Long orderId, Long itemId, int quantityToRemove) {
+        if (orderId == null || itemId == null || quantityToRemove <= 0) {
+            throw new IllegalArgumentException("Invalid request parameters.");
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " not found"));
+
+        OrderItem itemToModify = order.getItems().stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Order item with ID " + itemId + " not found"));
+
+        if (quantityToRemove > itemToModify.getQuantity()) {
+            throw new IllegalArgumentException("Quantity to remove exceeds current quantity.");
+        }
+
+        Product product = itemToModify.getProduct();
+        product.setQuantity(product.getQuantity() + quantityToRemove);
+        productRepository.save(product);
+
+        itemToModify.setQuantity(itemToModify.getQuantity() - quantityToRemove);
+        itemToModify.setTotalPrice(itemToModify.getQuantity() * product.getPrice());
+
+        if (itemToModify.getQuantity() == 0) {
+            order.getItems().remove(itemToModify);
+        }
+
+        double updatedTotalPrice = order.getItems().stream()
+                .mapToDouble(OrderItem::getTotalPrice)
+                .sum();
+        int updatedTotalItems = order.getItems().stream()
+                .mapToInt(OrderItem::getQuantity)
+                .sum();
+
+        order.setTotalPrice(updatedTotalPrice);
+        order.setTotalItems(updatedTotalItems);
+
+        orderRepository.save(order);
     }
 
-    public double getTotalPriceOfOrder(Long id) {
-        Optional<Order> order = getOrderById(id);
-        return order.map(Order::getTotalPrice).orElse(0.0);
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
+    public Order getOrderById(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Invalid order ID");
+        }
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new ProductUnavailableException("Order with ID " + id + " not found."));
     }
 
 }
